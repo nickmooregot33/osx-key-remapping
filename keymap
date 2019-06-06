@@ -1,0 +1,80 @@
+A=04
+B=05
+C=06
+D=07
+E=08
+F=09
+G=0A
+H=0B
+I=0C
+J=0D
+K=0E
+L=0F
+M=10
+N=11
+O=12
+P=13
+Q=14
+R=15
+S=16
+T=17
+U=18
+V=19
+W=1A
+X=1B
+Y=1C
+Z=1D
+
+LEFT_ARROW=50
+RIGHT_ARROW=4F
+DOWN_ARROW=51
+UP_ARROW=52
+
+F6=3F
+F7=40
+F8=41
+F9=42
+F10=43
+
+RIGHT_CONTROL=E4
+
+KEY_MAPPING_BASE=0x7000000
+
+SOURCE="\"HIDKeyboardModifierMappingSrc\""
+DEST="\"HIDKeyboardModifierMappingDst\""
+
+function get_key_mapping {
+	echo ${!1}
+}
+
+function get_remap_key_number {
+	key_to_replace=$(get_key_mapping $1)
+#	target_key=$(get_key_mapping $2)
+	echo "${KEY_MAPPING_BASE}${key_to_replace}"
+}
+
+function get_single_remap_object {
+#{"HIDKeyboardModifierMappingSrc":0x700000004,"HIDKeyboardModifierMappingDst":0x700000005}
+	src_key=$(get_remap_key_number $1)
+	dst_key=$(get_remap_key_number $2)
+	src="${SOURCE}:${src_key}"
+	dst="${DEST}:${dst_key}"
+	echo "{${src}, ${dst}}"
+}
+
+function build_remap_keys_command {
+	key_pair=$1
+	src_key=`echo $key_pair | cut -d: -f1`
+	dest_key=`echo $key_pair | cut -d: -f2`
+	shift
+	mapping_objects=`get_single_remap_object $src_key $dest_key`
+	while [[ $# -gt 0 ]]; do
+		key_pair=$1
+		src_key=`echo $key_pair | cut -d: -f1`
+		dest_key=`echo $key_pair | cut -d: -f2`
+		shift
+		mapping_objects+=",$(get_single_remap_object $src_key $dest_key)"
+	done
+	echo hidutil property --set "'{\"UserKeyMapping\":[${mapping_objects}]}'"
+}
+
