@@ -78,3 +78,33 @@ function build_remap_keys_command {
 	echo hidutil property --set "'{\"UserKeyMapping\":[${mapping_objects}]}'"
 }
 
+function get_current_key_mappings { # output comes out as decimal numbers instead of hexidecimals
+	hidutil property --get "UserKeyMapping" \
+	| tr '\n' '|' | tr ',' '\n' | tr -s ' ' \
+	| sed  's/[ \{\}\|\(\)]//g' \
+	| sed 's/.*=\([^;]*\).*=\([^;]*\);/\1:\2/'
+}
+
+function get_key_decimal_value {
+	key="$(get_remap_key_number $1)"
+	printf '%d' $key
+}
+
+function get_pair {
+	src_name=`echo "$1" | cut -d: -f1`
+	dest_name=`echo "$1" | cut -d: -f2`
+	src_decimal="$(get_key_decimal_value $src_name)"
+	dest_decimal="$(get_key_decimal_value $dest_name)"
+	echo "${dest_decimal}:${src_decimal}"
+}
+
+function check_for_key_mappings { 
+#take all the mapping pairs and build a regex pattern string to check for. l 
+	key_pair=`get_pair $1`
+	mappings=`get_current_key_mappings`
+	while  echo "$mappings" | grep -q "$key_pair" ; do
+		shift
+		key_pair=`get_pair $1`
+	done
+	test $# -eq 0 
+}
